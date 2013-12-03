@@ -89,9 +89,9 @@ public class NetCDFReaderTest extends Assert {
         try {
             String[] names = reader.getGridCoverageNames();
             assertNotNull(names);
-            assertEquals(names.length, 1);
-            assertEquals("LAI",names[0]);
-            GridCoverage2D grid = reader.read("LAI", null);
+            assertEquals(2,names.length);
+            assertEquals("ROOT/LEVEL1/V2",names[0]);
+            GridCoverage2D grid = reader.read("ROOT/LAI", null);
             assertNotNull(grid);
             byte[] byteValue = grid.evaluate(new
                     DirectPosition2D(DefaultGeographicCRS.WGS84, 12, 65), new byte[1]);
