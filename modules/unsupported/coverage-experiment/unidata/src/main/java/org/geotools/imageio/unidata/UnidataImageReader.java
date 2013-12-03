@@ -710,7 +710,19 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
     
         final WritableRaster raster = Raster.createWritableRaster(sampleModel, new Point(0, 0));
         final BufferedImage image = new BufferedImage(colorModel, raster, colorModel.isAlphaPremultiplied(), null);
-    
+
+        CoordinateAxis axis = wrapper.variableDS.getCoordinateSystems().get(0).getLatAxis();
+        boolean flipYAxis = false;
+        try {
+            Array yAxisStart = axis.read(new Section().appendRange(2));
+            float y1 = yAxisStart.getFloat(0);
+            float y2 = yAxisStart.getFloat(1);
+            if (y2 > y1) {
+                flipYAxis=true;
+            }
+        } catch (InvalidRangeException e) {
+            throw new RuntimeException(e);
+        }
         /*
          * Reads the requested sub-region only.
          */
@@ -734,31 +746,23 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
                 throw netcdfFailure(e);
             }
             final IndexIterator it = array.getIndexIterator();
-             for (int y = ymax; --y >= ymin;) {
-                for( int x = xmin; x < xmax; x++ ) {
-                    switch( type ) {
-                        case DataBuffer.TYPE_DOUBLE: {
-                            raster.setSample(x, y, dstBand, it.getDoubleNext());
-                            break;
-                        }
-                        case DataBuffer.TYPE_FLOAT: {
-                            raster.setSample(x, y, dstBand, it.getFloatNext());
-                            break;
-                        }
-                        case DataBuffer.TYPE_BYTE: {
-                            byte b = it.getByteNext();
-                            // int myByte = (0x000000FF & ((int) b));
-                            // short anUnsignedByte = (short) myByte;
-                            // raster.setSample(x, y, dstBand, anUnsignedByte);
-                            raster.setSample(x, y, dstBand, b);
-                            break;
-                        }
-                        default: {
-                            raster.setSample(x, y, dstBand, it.getIntNext());
-                            break;
-                        }
-                    }
+            switch( type ) {
+                case DataBuffer.TYPE_DOUBLE: {
+                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asDoubleBuffer().array());
+                    break;
                 }
+                case DataBuffer.TYPE_FLOAT:
+                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asFloatBuffer().array());
+                    break;
+                case DataBuffer.TYPE_BYTE:
+                    //THIS ONLY WORKS FOR ONE BAND!!
+                    raster.setDataElements(xmin,ymax,destRegion.width,destRegion.height,array.getDataAsByteBuffer().array());
+                    break;
+                case DataBuffer.TYPE_INT:
+                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asIntBuffer().array());
+                    break;
+
+
             }
             /*
              * Checks for abort requests after reading. It would be a waste of a
