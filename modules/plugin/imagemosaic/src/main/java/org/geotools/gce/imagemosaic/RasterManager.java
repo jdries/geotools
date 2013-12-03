@@ -1224,9 +1224,9 @@ public class RasterManager {
     public void createStore (SimpleFeatureType indexSchema) throws IOException {
         final String typeName = indexSchema.getTypeName();
         final SimpleFeatureType type = typeName != null ? granuleCatalog.getType(typeName) : null;
+        this.typeName = typeName;
         if (type == null) {
             granuleCatalog.createType(indexSchema);
-            this.typeName = typeName;
         } else {
             // remove them all, assuming the schema has not changed
             final Query query = new Query(type.getTypeName());

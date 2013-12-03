@@ -387,6 +387,22 @@ public class NetCDFMosaicReaderTest extends Assert {
             reader.dispose();
         }
     }
+
+    @Test
+    public void testHarvestSimpleData() throws IOException {
+        File nc1 = TestData.file(this,"2DLatLonCoverage.nc");
+        File nc2 = TestData.file(this,"2DLatLonCoverage2.nc");
+        File mosaic = new File(TestData.file(this,"."),"simpleMosaic");
+        if(mosaic.exists()) {
+            FileUtils.deleteDirectory(mosaic);
+        }
+        assertTrue(mosaic.mkdirs());
+        FileUtils.copyFileToDirectory(nc1, mosaic);
+        FileUtils.copyFileToDirectory(nc2, mosaic);
+        ImageMosaicFormat format = new ImageMosaicFormat();
+        ImageMosaicReader reader = format.getReader(mosaic);
+        reader.read(null);
+    }
     
     @Test
     public void testHarvestAddVariable() throws IOException {
