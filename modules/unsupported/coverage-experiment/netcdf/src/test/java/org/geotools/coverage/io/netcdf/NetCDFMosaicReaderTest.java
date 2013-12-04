@@ -399,9 +399,25 @@ public class NetCDFMosaicReaderTest extends Assert {
         assertTrue(mosaic.mkdirs());
         FileUtils.copyFileToDirectory(nc1, mosaic);
         FileUtils.copyFileToDirectory(nc2, mosaic);
+
+        // the datastore.properties file is also mandatory...
+        File dsp = TestData.file(this,"datastore.properties");
+        FileUtils.copyFileToDirectory(dsp, mosaic);
+
+        File xml =  TestData.file(this,"hdf5Coverage2D.xml");
+        FileUtils.copyFileToDirectory(xml, mosaic);
+
+        // The indexer
+        String indexer = "TimeAttribute=time\n"
+                + "Schema=the_geom:Polygon,location:String,imageindex:Integer,time:java.util.Date\n";
+              //  + "PropertyCollectors=TimestampFileNameExtractorSPI[timeregex](time)\n";
+        indexer += Prop.AUXILIARY_FILE + "=" + "hdf5Coverage2D.xml";
+        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), indexer);
+
+//        FileUtils.writeStringToFile(new File(mosaic, "indexer.properties"), "");
         ImageMosaicFormat format = new ImageMosaicFormat();
         ImageMosaicReader reader = format.getReader(mosaic);
-        reader.read(null);
+        reader.read("L1_V2",null);
     }
     
     @Test
