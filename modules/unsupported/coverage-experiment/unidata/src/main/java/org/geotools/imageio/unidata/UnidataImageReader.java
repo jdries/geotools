@@ -30,6 +30,9 @@ import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -745,23 +748,62 @@ public abstract class UnidataImageReader extends GeoSpatialImageReader {
             } catch (InvalidRangeException e) {
                 throw netcdfFailure(e);
             }
-            final IndexIterator it = array.getIndexIterator();
-            switch( type ) {
-                case DataBuffer.TYPE_DOUBLE: {
-                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asDoubleBuffer().array());
-                    break;
+            if (flipYAxis) {
+                final IndexIterator it = array.getIndexIterator();
+                for (int y = ymax; --y >= ymin; ) {
+                    for (int x = xmin; x < xmax; x++) {
+                        switch (type) {
+                            case DataBuffer.TYPE_DOUBLE: {
+                                raster.setSample(x, y, dstBand, it.getDoubleNext());
+                                break;
+                            }
+                            case DataBuffer.TYPE_FLOAT: {
+                                raster.setSample(x, y, dstBand, it.getFloatNext());
+                                break;
+                            }
+                            case DataBuffer.TYPE_BYTE: {
+                                byte b = it.getByteNext();
+                                // int myByte = (0x000000FF & ((int) b));
+                                // short anUnsignedByte = (short) myByte;
+                                // raster.setSample(x, y, dstBand, anUnsignedByte);
+                                raster.setSample(x, y, dstBand, b);
+                                break;
+                            }
+                            default: {
+                                raster.setSample(x, y, dstBand, it.getIntNext());
+                                break;
+                            }
+                        }
+                    }
                 }
-                case DataBuffer.TYPE_FLOAT:
-                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asFloatBuffer().array());
-                    break;
-                case DataBuffer.TYPE_BYTE:
-                    //THIS ONLY WORKS FOR ONE BAND!!
-                    raster.setDataElements(xmin,ymax,destRegion.width,destRegion.height,array.getDataAsByteBuffer().array());
-                    break;
-                case DataBuffer.TYPE_INT:
-                    raster.setSamples(xmin,ymax,destRegion.width,destRegion.height,dstBand,array.getDataAsByteBuffer().asIntBuffer().array());
-                    break;
+            }else{
+                switch( type ) {
+                    case DataBuffer.TYPE_DOUBLE: {
+                        DoubleBuffer doubleBuffer = array.getDataAsByteBuffer().asDoubleBuffer();
+                        double[] samples = new double[destRegion.width * destRegion.height];
+                        doubleBuffer.get(samples);
+                        raster.setSamples(xmin, ymin, destRegion.width, destRegion.height, dstBand, samples);
+                        break;
+                    }
+                    case DataBuffer.TYPE_FLOAT:
+                        float[] samples = new float[destRegion.width * destRegion.height];
+                        FloatBuffer floatBuffer = array.getDataAsByteBuffer().asFloatBuffer();
+                        floatBuffer.get(samples);
+                        raster.setSamples(xmin,ymin,destRegion.width,destRegion.height,dstBand,samples);
+                        break;
+                    case DataBuffer.TYPE_BYTE:
+                        //THIS ONLY WORKS FOR ONE BAND!!
+                        raster.setDataElements(xmin,ymin,destRegion.width,destRegion.height,array.getDataAsByteBuffer().array());
+                        break;
+                    case DataBuffer.TYPE_INT:
+                        IntBuffer intBuffer = array.getDataAsByteBuffer().asIntBuffer();
+                        int[] intSamples = new int[destRegion.width * destRegion.height];
+                        intBuffer.get(intSamples);
+                        raster.setSamples(xmin, ymin, destRegion.width, destRegion.height, dstBand, intSamples);
+                        break;
 
+
+                }
 
             }
             /*
