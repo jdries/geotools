@@ -121,8 +121,10 @@ import com.vividsolutions.jts.geom.Geometry;
 public class Utils {
     
     public final static FilterFactory2 FF = CommonFactoryFinder.getFilterFactory2();
-    
+
     final private static String DATABASE_KEY = "database";
+
+    final private static String MVCC_KEY = "MVCC";
 
     final private static double RESOLUTION_TOLERANCE_FACTOR = 1E-2;
 
@@ -1039,7 +1041,7 @@ public class Utils {
                         // it's a DIRECTORY, let's look for a possible properties files
                         // that we want to load
                         final String locationPath = sourceFile.getAbsolutePath();
-                        final String defaultIndexName = FilenameUtils.getName(locationPath);
+                        final String defaultIndexName = getDefaultIndexName(locationPath);
                         boolean datastoreFound = false;
                         boolean buildMosaic = false;
 
@@ -1169,6 +1171,25 @@ public class Utils {
                 // sourceURL=null;
         }
         return sourceURL;
+    }
+
+    private static String getDefaultIndexName(final String locationPath) {
+        if(locationPath == null) {
+            return null;
+        }
+        File file = new File(locationPath);
+        if(file.isDirectory()) {
+            File indexer = new File(file, "indexer.properties");
+            if(indexer.exists()) {
+                URL indexerUrl = DataUtilities.fileToURL(indexer);
+                Properties config = Utils.loadPropertiesFromURL(indexerUrl);
+                if(config != null && config.get(Utils.Prop.NAME) != null) {
+                    return (String) config.get(Utils.Prop.NAME);
+                } 
+            }
+        }
+        
+        return FilenameUtils.getName(locationPath);
     }
     
 
@@ -1737,7 +1758,14 @@ public class Utils {
     }
     
     }
-    
+
+    public static void fixH2MVCCParam(Map<String, Serializable> params) {
+        if (params != null) {
+            // H2 database URLs must not be percent-encoded: see GEOT-4262.
+            params.put(MVCC_KEY, true);
+        }
+    }
+
     /**
      * Checks if the provided factory spi builds a Oracle store
      */
